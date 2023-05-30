@@ -1,0 +1,53 @@
+#!/bin/sh
+# postinst script for greenbone-community-edition
+
+set -e
+
+# summary of how this script can be called:
+#        * <postinst> `configure' <most-recently-configured-version>
+#        * <old-postinst> `abort-upgrade' <new version>
+#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#          <new-version>
+#        * <postinst> `abort-remove'
+#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#          <failed-install-package> <version> `removing'
+#          <conflicting-package> <version>
+# for details, see https://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+
+case "$1" in
+    configure)
+        getent passwd gvm > /dev/null || useradd \
+            --system \
+            --no-create-home \
+            --user-group \
+            --groups sudo,redis \
+            --shell /usr/sbin/nologin \
+            gvm
+        chown gvm:gvm -R /var/lib/openvas /var/lib/gvm /var/lib/notus /var/log/gvm
+        chmod -R g+srw /var/lib/openvas /var/lib/gvm /var/log/gvm
+        chown gvm:gvm /usr/sbin/gvmd
+        chmod 6750 /usr/sbin/gvmd
+        chown gvm:gvm /usr/bin/greenbone-feed-sync
+        chmod 740 /usr/bin/greenbone-feed-sync
+
+        export GNUPGHOME=/etc/openvas/gnupg
+        mkdir -p $GNUPGHOME
+        curl -L https://www.greenbone.net/GBCommunitySigningKey.asc | gpg --import
+        echo "8AE4BE429B60A59B311C2E739823FAA60ED1E580:6:" | gpg --import-ownertrust
+        chown -R gvm:gvm $GNUPGHOME
+
+        chown redis:redis /etc/redis/redis-openvas.conf
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+exit 0

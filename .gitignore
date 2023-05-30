@@ -1,0 +1,6 @@
+.*\.tar\.gz
+debian/tmp
+debian/files
+debian/substvars
+.*-build
+/[a-z-]+(\d+\.){3}
